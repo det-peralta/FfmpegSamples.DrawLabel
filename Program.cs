@@ -1,8 +1,6 @@
-﻿using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Humanizer;
 
 namespace FfmpegSamples.DrawLabel
 {
@@ -25,10 +23,11 @@ namespace FfmpegSamples.DrawLabel
                 foreach (var videoFile in videoFiles)
                 {
                     string fileName = Path.GetFileNameWithoutExtension(videoFile);
-                    string outputVideoPath = Path.Combine(outputFolderPath, $"{fileName}_label.mp4");
+                    string normalizedFileName = NormalizeFileName(fileName);
+                    string outputVideoPath = Path.Combine(outputFolderPath, $"{normalizedFileName}_label.mp4");
 
                     // Command to add a filename label to the video using FFmpeg with NVIDIA hardware acceleration
-                    string ffmpegArgs = $"-hwaccel cuda -i \"{videoFile}\" -vf drawtext=\"fontfile='/Windows/Fonts/arial.ttf': text='{fileName}': x=(w-text_w)/2: y=h-(text_h*1.3): fontsize=47: fontcolor=white: box=1: boxcolor=black@0.5\" -c:v h264_nvenc -preset slow -b:v 1M -c:a copy \"{outputVideoPath}\"";
+                    string ffmpegArgs = $"-hwaccel cuda -i \"{videoFile}\" -vf drawtext=\"fontfile='/Windows/Fonts/arial.ttf': text='{normalizedFileName}': x=(w-text_w)/2: y=h-(text_h*1.3): fontsize=47: fontcolor=white: box=1: boxcolor=black@0.5\" -c:v h264_nvenc -preset slow -b:v 1M -c:a copy \"{outputVideoPath}\"";
                     RunFFmpeg(ffmpegArgs);
 
                     concatListWriter.WriteLine($"file '{outputVideoPath.Replace("'", "'\\''")}'");
@@ -50,6 +49,19 @@ namespace FfmpegSamples.DrawLabel
         {
             var match = Regex.Match(fileName, @"\d+");
             return match.Success ? int.Parse(match.Value) : int.MaxValue;
+        }
+
+        static string NormalizeFileName(string fileName)
+        {
+            var match = Regex.Match(fileName, @"^(\d+\s*-\s*)(.*)$");
+            if (match.Success)
+            {
+                string prefix = match.Groups[1].Value;
+                string textPart = match.Groups[2].Value;
+                string normalizedTextPart = textPart.Transform(To.TitleCase).Dehumanize();
+                return prefix + normalizedTextPart;
+            }
+            return fileName.Transform(To.TitleCase).Dehumanize();
         }
 
         static void RunFFmpeg(string arguments)
