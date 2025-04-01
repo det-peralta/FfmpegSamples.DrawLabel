@@ -8,7 +8,7 @@ namespace FfmpegSamples.DrawLabel
     {
         static void Main(string[] args)
         {
-            string folderPath = @"C:\Users\sleepy\Desktop\cortes"; // Change this to your folder path
+            string folderPath = @"C:\Users\sleepy\Desktop\posjogo"; // Change this to your folder path
             string outputFolderPath = Path.Combine(folderPath, "output");
             Directory.CreateDirectory(outputFolderPath);
 
@@ -27,7 +27,7 @@ namespace FfmpegSamples.DrawLabel
                     string outputVideoPath = Path.Combine(outputFolderPath, $"{normalizedFileName}_label.mp4");
 
                     // Command to add a filename label to the video using FFmpeg with NVIDIA hardware acceleration
-                    string ffmpegArgs = $"-hwaccel cuda -i \"{videoFile}\" -vf drawtext=\"fontfile='/Windows/Fonts/arial.ttf': text='{normalizedFileName}': x=(w-text_w)/2: y=h-(text_h*1.3): fontsize=47: fontcolor=white: box=1: boxcolor=black@0.5\" -c:v h264_nvenc -preset slow -b:v 1M -c:a copy \"{outputVideoPath}\"";
+                    string ffmpegArgs = $"-hwaccel cuda -i \"{videoFile}\" -vf drawtext=\"fontfile='/Windows/Fonts/arial.ttf': text='{normalizedFileName}': x=(w-text_w)/2: y=h-(text_h*1.3): fontsize=47: fontcolor=white: box=1: boxcolor=black@0.5\" -c:v h264_nvenc -preset slow -b:v 5M -c:a copy \"{outputVideoPath}\"";
                     RunFFmpeg(ffmpegArgs);
 
                     concatListWriter.WriteLine($"file '{outputVideoPath.Replace("'", "'\\''")}'");
@@ -58,10 +58,10 @@ namespace FfmpegSamples.DrawLabel
             {
                 string prefix = match.Groups[1].Value;
                 string textPart = match.Groups[2].Value;
-                string normalizedTextPart = textPart.Transform(To.TitleCase).Dehumanize();
+                string normalizedTextPart = textPart.Transform(To.TitleCase).Dehumanize().Humanize();
                 return prefix + normalizedTextPart;
             }
-            return fileName.Transform(To.TitleCase).Dehumanize();
+            return fileName.Transform(To.TitleCase).Dehumanize().Humanize();
         }
 
         static void RunFFmpeg(string arguments)
