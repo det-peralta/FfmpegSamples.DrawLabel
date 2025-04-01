@@ -4,7 +4,7 @@ using Humanizer;
 
 namespace FfmpegSamples.DrawLabel
 {
-    internal class Program
+    internal partial class Program
     {
         static void Main(string[] args)
         {
@@ -53,7 +53,7 @@ namespace FfmpegSamples.DrawLabel
 
         static string NormalizeFileName(string fileName)
         {
-            var match = Regex.Match(fileName, @"^(\d+\s*-\s*)(.*)$");
+            var match = MyRegex().Match(fileName);
             if (match.Success)
             {
                 string prefix = match.Groups[1].Value;
@@ -66,7 +66,7 @@ namespace FfmpegSamples.DrawLabel
 
         static void RunFFmpeg(string arguments)
         {
-            ProcessStartInfo startInfo = new ProcessStartInfo
+            ProcessStartInfo startInfo = new()
             {
                 FileName = "ffmpeg",
                 Arguments = arguments,
@@ -76,14 +76,12 @@ namespace FfmpegSamples.DrawLabel
                 CreateNoWindow = true
             };
 
-            using (Process process = Process.Start(startInfo))
-            {
-                process.OutputDataReceived += (sender, e) => Console.WriteLine(e.Data);
-                process.ErrorDataReceived += (sender, e) => Console.WriteLine(e.Data);
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-                process.WaitForExit();
-            }
+            using Process? process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start FFmpeg process");
+            process.OutputDataReceived += (sender, e) => Console.WriteLine(e.Data);
+            process.ErrorDataReceived += (sender, e) => Console.WriteLine(e.Data);
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            process.WaitForExit();
         }
 
         static void AuditFinalVideo(string outputFolderPath, string finalVideoPath)
@@ -121,7 +119,7 @@ namespace FfmpegSamples.DrawLabel
 
         static TimeSpan GetVideoDuration(string videoFilePath)
         {
-            ProcessStartInfo startInfo = new ProcessStartInfo
+            ProcessStartInfo startInfo = new()
             {
                 FileName = "ffprobe",
                 Arguments = $"-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"{videoFilePath}\"",
@@ -131,20 +129,21 @@ namespace FfmpegSamples.DrawLabel
                 CreateNoWindow = true
             };
 
-            using (Process process = Process.Start(startInfo))
-            {
-                string output = process.StandardOutput.ReadToEnd();
-                process.WaitForExit();
+            using Process? process = Process.Start(startInfo) ?? throw new InvalidOperationException($"Failed to start FFprobe process for file: {videoFilePath}");
+            string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
 
-                if (double.TryParse(output, out double seconds))
-                {
-                    return TimeSpan.FromSeconds(seconds);
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Could not determine duration of video: {videoFilePath}");
-                }
+            if (double.TryParse(output, out double seconds))
+            {
+                return TimeSpan.FromSeconds(seconds);
+            }
+            else
+            {
+                throw new InvalidOperationException($"Could not determine duration of video: {videoFilePath}");
             }
         }
+
+        [GeneratedRegex(@"^(\d+\s*-\s*)(.*)$")]
+        private static partial Regex MyRegex();
     }
 }
